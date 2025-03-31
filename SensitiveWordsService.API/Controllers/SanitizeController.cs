@@ -3,11 +3,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using SensitiveWordsService.API.DTOs;
 using SensitiveWordsService.Core.Interfaces;
+using Microsoft.AspNetCore.Mvc.Versioning;
 
 namespace SensitiveWordsService.API.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [ApiVersion("1.0")]
+    [Route("api/v{version:apiVersion}/[controller]")]
     public class SanitizeController : ControllerBase
     {
         private readonly ISensitiveWordService _service;

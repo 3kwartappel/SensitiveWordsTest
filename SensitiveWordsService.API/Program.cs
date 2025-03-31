@@ -2,6 +2,12 @@ using Microsoft.OpenApi.Models;
 using SensitiveWordsService.Core.Interfaces;
 using SensitiveWordsService.Core.Services;
 using SensitiveWordsService.Infrastructure.Repositories;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Prometheus;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ApiExplorer;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,6 +29,46 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddScoped<ISensitiveWordRepository, SensitiveWordRepository>();
 builder.Services.AddScoped<ISensitiveWordService, SensitiveWordService>();
 
+// Add rate limiting
+builder.Services.AddRateLimiter(options =>
+{
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.User.Identity?.Name ?? context.Request.Headers.Host.ToString(),
+            factory: partition => new FixedWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = 100,
+                Window = TimeSpan.FromMinutes(1)
+            }));
+});
+
+// Add health checks
+builder.Services.AddHealthChecks()
+    .AddSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        name: "database",
+        tags: new[] { "db", "sql", "sqlserver" });
+
+// Add API versioning
+builder.Services.AddApiVersioning(options =>
+{
+    options.DefaultApiVersion = new ApiVersion(1, 0);
+    options.AssumeDefaultVersionWhenUnspecified = true;
+    options.ReportApiVersions = true;
+    options.ApiVersionReader = ApiVersionReader.Combine(
+        new UrlSegmentApiVersionReader(),
+        new HeaderApiVersionReader("X-Api-Version"),
+        new QueryStringApiVersionReader("api-version")
+    );
+});
+
+builder.Services.AddVersionedApiExplorer(options =>
+{
+    options.GroupNameFormat = "'v'VVV";
+    options.SubstituteApiVersionInUrl = true;
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -39,6 +85,34 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
+
+// Add rate limiting middleware
+app.UseRateLimiter();
+
+// Add health check endpoint
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.ContentType = "application/json";
+        var response = new
+        {
+            Status = report.Status.ToString(),
+            Duration = report.TotalDuration,
+            Info = report.Entries.Select(e => new
+            {
+                Key = e.Key,
+                Status = e.Value.Status.ToString(),
+                Duration = e.Value.Duration
+            })
+        };
+        await context.Response.WriteAsJsonAsync(response);
+    }
+});
+
+// Add Prometheus metrics
+app.UseMetricServer();
+app.UseHttpMetrics();
 
 var summaries = new[]
 {
@@ -59,6 +133,23 @@ app.MapGet("/weatherforecast", () =>
 })
 .WithName("GetWeatherForecast")
 .WithOpenApi();
+
+// Configure Swagger with API versioning
+builder.Services.ConfigureSwaggerGen(options =>
+{
+    var provider = app.Services.GetRequiredService<IApiVersionDescriptionProvider>();
+    foreach (var description in provider.ApiVersionDescriptions)
+    {
+        options.SwaggerDoc(
+            description.GroupName,
+            new OpenApiInfo
+            {
+                Title = $"Sensitive Words Service API {description.ApiVersion}",
+                Version = description.ApiVersion.ToString(),
+                Description = "API for managing and sanitizing sensitive words in text"
+            });
+    }
+});
 
 app.Run();
 
