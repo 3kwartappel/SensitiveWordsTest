@@ -8,6 +8,8 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Prometheus;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ApiExplorer;
+using Microsoft.AspNetCore.Mvc.Versioning;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -44,9 +46,15 @@ builder.Services.AddRateLimiter(options =>
 });
 
 // Add health checks
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrEmpty(connectionString))
+{
+    throw new InvalidOperationException("Database connection string 'DefaultConnection' not found.");
+}
+
 builder.Services.AddHealthChecks()
     .AddSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
+        connectionString,
         name: "database",
         tags: new[] { "db", "sql", "sqlserver" });
 
@@ -56,7 +64,7 @@ builder.Services.AddApiVersioning(options =>
     options.DefaultApiVersion = new ApiVersion(1, 0);
     options.AssumeDefaultVersionWhenUnspecified = true;
     options.ReportApiVersions = true;
-    options.ApiVersionReader = ApiVersionReader.Combine(
+    options.ApiVersionReader = Microsoft.AspNetCore.Mvc.Versioning.ApiVersionReader.Combine(
         new UrlSegmentApiVersionReader(),
         new HeaderApiVersionReader("X-Api-Version"),
         new QueryStringApiVersionReader("api-version")
@@ -114,26 +122,6 @@ app.MapHealthChecks("/health", new HealthCheckOptions
 app.UseMetricServer();
 app.UseHttpMetrics();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast")
-.WithOpenApi();
-
 // Configure Swagger with API versioning
 builder.Services.ConfigureSwaggerGen(options =>
 {
@@ -152,8 +140,3 @@ builder.Services.ConfigureSwaggerGen(options =>
 });
 
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
