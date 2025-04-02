@@ -17,16 +17,18 @@ namespace SensitiveWordsService.Infrastructure.Repositories
 
         public SensitiveWordRepository(IConfiguration configuration)
         {
-            _connectionString = configuration.GetConnectionString("DefaultConnection");
+            _connectionString = configuration.GetConnectionString("DefaultConnection") 
+                ?? throw new ArgumentNullException(nameof(configuration), "Connection string 'DefaultConnection' not found.");
         }
 
         public async Task<IEnumerable<SensitiveWord>> GetAllAsync()
         {
             using var connection = new SqlConnection(_connectionString);
-            return await connection.QueryAsync<SensitiveWord>($"SELECT * FROM {TableName}");
+            var result = await connection.QueryAsync<SensitiveWord>($"SELECT * FROM {TableName}");
+            return result ?? Array.Empty<SensitiveWord>();
         }
 
-        public async Task<SensitiveWord> GetByIdAsync(int id)
+        public async Task<SensitiveWord?> GetByIdAsync(int id)
         {
             using var connection = new SqlConnection(_connectionString);
             return await connection.QueryFirstOrDefaultAsync<SensitiveWord>(
@@ -74,8 +76,9 @@ namespace SensitiveWordsService.Infrastructure.Repositories
         public async Task<IEnumerable<SensitiveWord>> GetActiveWordsAsync()
         {
             using var connection = new SqlConnection(_connectionString);
-            return await connection.QueryAsync<SensitiveWord>(
+            var result = await connection.QueryAsync<SensitiveWord>(
                 $"SELECT * FROM {TableName} WHERE IsActive = 1");
+            return result ?? Array.Empty<SensitiveWord>();
         }
     }
 } 

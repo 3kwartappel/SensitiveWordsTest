@@ -3,7 +3,9 @@ IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'SensitiveWordsDB')
 BEGIN
     CREATE DATABASE SensitiveWordsDB;
 END
+GO
 
+-- Switch to the database
 USE SensitiveWordsDB;
 GO
 
@@ -20,6 +22,7 @@ BEGIN
         CONSTRAINT [UQ_SensitiveWords_Word] UNIQUE NONCLUSTERED ([Word] ASC)
     );
 END
+GO
 
 -- Insert initial data
 IF NOT EXISTS (SELECT * FROM [dbo].[SensitiveWords])
@@ -254,4 +257,5 @@ BEGIN
         ('LONGTABLE', GETUTCDATE(), 1),
         ('DOUBLETABLE', GETUTCDATE(), 1),
         ('SELECT * FROM', GETUTCDATE(), 1);
-END 
+END
+GO 

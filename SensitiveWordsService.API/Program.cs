@@ -17,6 +17,27 @@ var builder = WebApplication.CreateBuilder(args);
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+
+// Add API versioning first
+builder.Services.AddApiVersioning(options =>
+{
+    options.DefaultApiVersion = new ApiVersion(1, 0);
+    options.AssumeDefaultVersionWhenUnspecified = true;
+    options.ReportApiVersions = true;
+    options.ApiVersionReader = Microsoft.AspNetCore.Mvc.Versioning.ApiVersionReader.Combine(
+        new UrlSegmentApiVersionReader(),
+        new HeaderApiVersionReader("X-Api-Version"),
+        new QueryStringApiVersionReader("api-version")
+    );
+});
+
+builder.Services.AddVersionedApiExplorer(options =>
+{
+    options.GroupNameFormat = "'v'VVV";
+    options.SubstituteApiVersionInUrl = true;
+});
+
+// Configure Swagger with API versioning support
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo
@@ -57,25 +78,6 @@ builder.Services.AddHealthChecks()
         connectionString,
         name: "database",
         tags: new[] { "db", "sql", "sqlserver" });
-
-// Add API versioning
-builder.Services.AddApiVersioning(options =>
-{
-    options.DefaultApiVersion = new ApiVersion(1, 0);
-    options.AssumeDefaultVersionWhenUnspecified = true;
-    options.ReportApiVersions = true;
-    options.ApiVersionReader = Microsoft.AspNetCore.Mvc.Versioning.ApiVersionReader.Combine(
-        new UrlSegmentApiVersionReader(),
-        new HeaderApiVersionReader("X-Api-Version"),
-        new QueryStringApiVersionReader("api-version")
-    );
-});
-
-builder.Services.AddVersionedApiExplorer(options =>
-{
-    options.GroupNameFormat = "'v'VVV";
-    options.SubstituteApiVersionInUrl = true;
-});
 
 var app = builder.Build();
 
@@ -121,22 +123,5 @@ app.MapHealthChecks("/health", new HealthCheckOptions
 // Add Prometheus metrics
 app.UseMetricServer();
 app.UseHttpMetrics();
-
-// Configure Swagger with API versioning
-builder.Services.ConfigureSwaggerGen(options =>
-{
-    var provider = app.Services.GetRequiredService<IApiVersionDescriptionProvider>();
-    foreach (var description in provider.ApiVersionDescriptions)
-    {
-        options.SwaggerDoc(
-            description.GroupName,
-            new OpenApiInfo
-            {
-                Title = $"Sensitive Words Service API {description.ApiVersion}",
-                Version = description.ApiVersion.ToString(),
-                Description = "API for managing and sanitizing sensitive words in text"
-            });
-    }
-});
 
 app.Run();

@@ -36,24 +36,92 @@ A microservice for managing and sanitizing sensitive words in text. This service
 - `PUT /api/SensitiveWords/{id}` - Update an existing sensitive word
 - `DELETE /api/SensitiveWords/{id}` - Delete a sensitive word
 
+### PowerShell Examples
+
+Here are examples of how to interact with the API using PowerShell:
+
+1. Get all sensitive words:
+```powershell
+Invoke-RestMethod -Uri "https://localhost:7240/api/v1/SensitiveWords" -Method Get -ContentType "application/json" -SkipCertificateCheck
+```
+
+2. Create a new sensitive word:
+```powershell
+$body = @{ 
+    word = "TESTWORD2"
+    isActive = $true 
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "https://localhost:7240/api/v1/SensitiveWords" -Method Post -Body $body -ContentType "application/json" -SkipCertificateCheck
+```
+
+3. Update a sensitive word:
+```powershell
+$body = @{ 
+    id = 231
+    word = "UPDATEDTESTWORD2"
+    isActive = $true 
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "https://localhost:7240/api/v1/SensitiveWords/231" -Method Put -Body $body -ContentType "application/json" -SkipCertificateCheck
+```
+
+4. Get a specific sensitive word:
+```powershell
+Invoke-RestMethod -Uri "https://localhost:7240/api/v1/SensitiveWords/231" -Method Get -ContentType "application/json" -SkipCertificateCheck
+```
+
+5. Sanitize text:
+```powershell
+$body = @{ 
+    text = "SELECT * FROM users WHERE id = 1" 
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "https://localhost:7240/api/v1/Sanitize" -Method Post -Body $body -ContentType "application/json" -SkipCertificateCheck
+```
+
+Note: The `-SkipCertificateCheck` parameter is used for development environments. In production, proper SSL certificates should be used.
+
 ### Text Sanitization
 
 - `POST /api/Sanitize` - Sanitize text by replacing sensitive words with asterisks
 
-#### Example Request:
+#### Example Requests and Responses:
+
+1. Basic SQL Query:
 ```json
+// Request
 {
-    "text": "SELECT * FROM users"
+    "text": "SELECT * FROM users WHERE id = 1"
+}
+
+// Response
+{
+    "originalText": "SELECT * FROM users WHERE id = 1",
+    "sanitizedText": "****** * **** users ***** id = 1"
 }
 ```
 
-#### Example Response:
+2. SQL Injection Attempt:
 ```json
+// Request
 {
-    "originalText": "SELECT * FROM users",
-    "sanitizedText": "****** * **** users"
+    "text": "DROP TABLE customers; DELETE FROM orders"
+}
+
+// Response
+{
+    "originalText": "DROP TABLE customers; DELETE FROM orders",
+    "sanitizedText": "**** ***** customers; ****** FROM orders"
 }
 ```
+
+The service will:
+- Detect and mask SQL keywords and potentially dangerous terms
+- Preserve the original text structure
+- Return both the original and sanitized versions
+- Handle multiple sensitive words in a single text
+- Perform case-insensitive matching
 
 ## Implementation Details
 
