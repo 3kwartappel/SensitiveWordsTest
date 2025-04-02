@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using SensitiveWordsService.Core.Interfaces;
 using SensitiveWordsService.Core.Models;
+using System.Text;
 
 namespace SensitiveWordsService.Core.Services
 {
@@ -58,15 +59,17 @@ namespace SensitiveWordsService.Core.Services
 
         public async Task<string> SanitizeTextAsync(string input)
         {
-            if (string.IsNullOrEmpty(input))
-                return input;
+            if (input == null)
+                return null;
 
             await EnsureCacheIsValidAsync();
-            var words = input.Split(' ');
-            var sanitizedWords = words.Select(word => 
-                _activeWordsCache.Contains(word.ToUpper()) ? new string('*', word.Length) : word);
             
-            return string.Join(" ", sanitizedWords);
+            var words = input.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Select(word => _activeWordsCache.Contains(word, StringComparer.OrdinalIgnoreCase) 
+                    ? new string('*', word.Length) 
+                    : word);
+            
+            return string.Join(" ", words);
         }
 
         private async Task EnsureCacheIsValidAsync()
