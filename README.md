@@ -183,58 +183,6 @@ The SQL Server database includes:
    - Request/response examples
    - Response type specifications
 
-## Additional Enhancements
-
-1. **Security**
-   - API authentication and authorization
-   - Rate limiting
-   - Input validation and sanitization
-   - HTTPS enforcement
-
-2. **Monitoring and Logging**
-   - Application insights integration
-   - Structured logging
-   - Health checks
-   - Performance metrics
-
-3. **Deployment**
-   - Docker containerization
-   - Kubernetes orchestration
-   - CI/CD pipeline
-   - Blue-green deployment strategy
-
-4. **Testing**
-   - Unit tests with xUnit
-   - Integration tests
-   - Load testing
-   - API documentation tests
-
-## Production Deployment
-
-1. **Infrastructure**
-   - Deploy to Azure Kubernetes Service (AKS)
-   - Use Azure SQL Database
-   - Implement Azure Application Insights
-   - Set up Azure Key Vault for secrets
-
-2. **High Availability**
-   - Multiple replicas
-   - Load balancing
-   - Database failover
-   - Geographic distribution
-
-3. **Monitoring**
-   - Application performance monitoring
-   - Error tracking
-   - Usage analytics
-   - Cost optimization
-
-4. **Security**
-   - Network security groups
-   - SSL/TLS encryption
-   - Regular security audits
-   - Compliance monitoring
-
 ## Future Enhancements
 
 1. **API Security**
@@ -242,12 +190,15 @@ The SQL Server database includes:
    - JWT token-based authentication
    - Role-based access control (RBAC)
    - API key rotation and management
+   - Rate limiting
+   - HTTPS enforcement
 
 2. **Audit and Logging**
    - Request/response logging for audit purposes
    - Structured logging with correlation IDs
    - Audit trail for sensitive word changes
    - Log aggregation and analysis
+   - Application insights integration
 
 3. **Bulk Operations**
    - Bulk import/export of sensitive words
@@ -284,6 +235,28 @@ The SQL Server database includes:
    - SDK development
    - Code samples and tutorials
    - Development environment improvements
+
+9. **Production Deployment**
+   - Docker containerization
+   - Kubernetes orchestration
+   - CI/CD pipeline
+   - Blue-green deployment strategy
+   - Azure Kubernetes Service (AKS) deployment
+   - Azure SQL Database integration
+   - Azure Application Insights implementation
+   - Azure Key Vault for secrets
+   - High availability setup
+   - Geographic distribution
+   - Network security groups
+   - Regular security audits
+   - Compliance monitoring
+
+10. **Testing Enhancements**
+    - Integration tests
+    - Load testing
+    - API documentation tests
+    - Performance testing
+    - Security testing
 
 ## Contributing
 
